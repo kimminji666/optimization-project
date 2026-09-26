@@ -14,13 +14,13 @@ const inspectors = ['김민준', '이서연', '박지호', '최유진', '정도�
 
 const defectTemplates: Omit<Defect, 'id' | 'bbox'>[] = [
   { type: 'scratch', severity: 'minor', confidence: 0.92, description: '표면 스크래치 (길이 약 15mm)' },
-  { type: 'dent', severity: 'major', confidence: 0.88, description: '충격으로 인한 함몰 (직경 약 20mm)' },
-  { type: 'rust', severity: 'major', confidence: 0.85, description: '표면 부식 발생 (면적 약 30mm²)' },
-  { type: 'crack', severity: 'critical', confidence: 0.95, description: '구조적 균열 감지 (길이 약 45mm)' },
-  { type: 'deformation', severity: 'critical', confidence: 0.91, description: '형상 변형 (편차 약 3mm)' },
-  { type: 'contamination', severity: 'minor', confidence: 0.79, description: '이물질 오염 감지' },
-  { type: 'color_mismatch', severity: 'minor', confidence: 0.82, description: '도장 색상 불량' },
-  { type: 'missing_part', severity: 'major', confidence: 0.97, description: '볼트 체결 누락 (2개소)' },
+  { type: 'appearance_damage', severity: 'major', confidence: 0.88, description: '충격으로 인한 외관 손상 (직경 약 20mm)' },
+  { type: 'step', severity: 'major', confidence: 0.85, description: '단차 발생 (약 3mm)' },
+  { type: 'hole_deformation', severity: 'critical', confidence: 0.95, description: '홀 형상 변형 감지' },
+  { type: 'looseness', severity: 'critical', confidence: 0.91, description: '유격 발생 (편차 약 3mm)' },
+  { type: 'sealing', severity: 'minor', confidence: 0.79, description: '실링 불량 감지' },
+  { type: 'connection', severity: 'minor', confidence: 0.82, description: '연계 불량' },
+  { type: 'fastening', severity: 'major', confidence: 0.97, description: '볼트 체결 누락 (2개소)' },
 ];
 
 function randomBbox(): Defect['bbox'] {
@@ -101,7 +101,7 @@ export const mockModels: AIModel[] = [
     datasetSize: 12480,
     description:
       'Swin Transformer Tiny와 Faster R-CNN을 결합한 객체 탐지 모델. 정밀한 불량 탐지를 우선하는 검사 환경을 대상으로 한다.',
-    defectTypes: ['scratch', 'dent', 'rust', 'crack', 'deformation', 'contamination'],
+      defectTypes: ['scratch', 'appearance_damage', 'step', 'hole_deformation', 'looseness', 'sealing'],
   },
   {
     id: 'yolo',
@@ -121,7 +121,7 @@ export const mockModels: AIModel[] = [
     datasetSize: 12480,
     description:
       '실시간 객체 탐지에 적합한 YOLO 기반 모델. 빠른 추론 속도를 중요하게 고려하는 검사 환경을 대상으로 한다.',
-    defectTypes: ['scratch', 'dent', 'rust'],
+      defectTypes: ['scratch', 'appearance_damage', 'step'],
   },
   {
     id: 'ssd-mobilenetv3',
@@ -141,7 +141,7 @@ export const mockModels: AIModel[] = [
     datasetSize: 12480,
     description:
       'SSD와 MobileNetV3를 결합한 경량 객체 탐지 모델. 낮은 연산 자원에서도 동작할 수 있는 검사 환경을 대상으로 한다.',
-    defectTypes: ['scratch', 'dent', 'color_mismatch', 'deformation'],
+      defectTypes: ['scratch', 'appearance_damage', 'looseness'],
   },
 ];
 

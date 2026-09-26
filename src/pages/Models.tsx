@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Cpu,
   Plus,
@@ -32,8 +32,24 @@ const statusMeta = (status: AIModel['status']) => {
 };
 
 export default function Models() {
-  const [models, setModels] = useState<AIModel[]>(mockModels);
+  const [models, setModels] = useState<AIModel[]>(() => {
+    const savedModels = localStorage.getItem('aiModels');
+  
+    if (savedModels) {
+      try {
+        return JSON.parse(savedModels);
+      } catch {
+        return mockModels;
+      }
+    }
+  
+    return mockModels;
+  });
   const [selectedModel, setSelectedModel] = useState<AIModel | null>(null);
+  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState(false);
+  const [newModelName, setNewModelName] = useState('');
+  const [newModelVersion, setNewModelVersion] = useState('');
+  const [newModelDescription, setNewModelDescription] = useState('');
 
   const toggleStatus = (id: string) => {
     setModels((prev) =>
@@ -44,6 +60,115 @@ export default function Models() {
       )
     );
   };
+
+  const deleteModel = (id: string) => {
+    const target = models.find((model) => model.id === id);
+
+    if (!target) return;
+
+    if (target.status === 'active') {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `"${target.name}" 모델을 삭제하시겠습니까?`
+    );
+
+    if (!confirmed) return;
+
+    setModels((prev) => prev.filter((model) => model.id !== id));
+
+    if (selectedModel?.id === id) {
+      setSelectedModel(null);
+    }
+  };
+
+  const registerModel = () => {
+    if (!newModelName.trim() || !newModelVersion.trim()) {
+      window.alert('모델 이름과 버전을 입력해주세요.');
+      return;
+    }
+  
+    const newModel: AIModel = {
+      id: `model-${Date.now()}`,
+      name: newModelName.trim(),
+      version: newModelVersion.trim(),
+      status: 'training',
+  
+      accuracy: 0,
+      precision: 0,
+      recall: 0,
+      f1Score: 0,
+      mAP: 0,
+  
+      fps: 0,
+      latencyMs: 0,
+      gpuMemoryMb: 0,
+      modelSizeMb: 0,
+  
+      trainingEpoch: 0,
+      totalEpochs: 100,
+  
+      trainedAt: new Date().toISOString(),
+      datasetSize: 0,
+      description: newModelDescription.trim() || '등록된 AI 모델입니다.',
+      defectTypes: [],
+    };
+  
+    setModels((prev) => [...prev, newModel]);
+  
+    setNewModelName('');
+    setNewModelVersion('');
+    setNewModelDescription('');
+    setIsRegisterModalOpen(false);
+  };
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setModels((prev) =>
+        prev.map((model) => {
+          if (model.status !== 'training') return model;
+  
+          const currentEpoch = model.trainingEpoch ?? 0;
+          const totalEpochs = model.totalEpochs ?? 100;
+  
+          if (currentEpoch >= totalEpochs) {
+            return {
+              ...model,
+              status: 'inactive',
+              trainingEpoch: totalEpochs,
+          
+              // 화면 시연용 임시 성능값
+              accuracy: 94.2,
+              precision: 93.8,
+              recall: 92.5,
+              f1Score: 93.1,
+              mAP: 92.8,
+          
+              fps: 52,
+              latencyMs: 19,
+              gpuMemoryMb: 1800,
+              modelSizeMb: 30,
+          
+              trainedAt: new Date().toISOString(),
+              datasetSize: 200000,
+            };
+          }
+  
+          return {
+            ...model,
+            trainingEpoch: currentEpoch + 5,
+          };
+        })
+      );
+    }, 1000);
+  
+    return () => clearInterval(timer);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('aiModels', JSON.stringify(models));
+  }, [models]);
 
   const activeCount = models.filter((m) => m.status === 'active').length;
   const trainingCount = models.filter((m) => m.status === 'training').length;
@@ -86,7 +211,10 @@ export default function Models() {
         <SectionTitle
           title="AI 모델 목록"
           action={
-            <button className="btn-primary">
+            <button
+              onClick={() => setIsRegisterModalOpen(true)}
+              className="btn-primary"
+            >
               <Plus className="w-4 h-4" />
               모델 등록
             </button>
@@ -130,10 +258,19 @@ export default function Models() {
                   <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
                     <div className="flex items-center justify-between text-xs text-amber-700 mb-2">
                       <span>학습 진행률</span>
-                      <span className="font-medium">에포크 45/100</span>
+                      <span className="font-medium">
+                        에포크 {model.trainingEpoch ?? 0}/{model.totalEpochs ?? 0}
+                      </span>
                     </div>
+
                     <div className="w-full h-2 bg-amber-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: '45%' }} />
+                      <div
+                        className="h-full bg-amber-500 rounded-full transition-all"
+                        style={{
+                          width: `${((model.trainingEpoch ?? 0) / (model.totalEpochs ?? 1)) * 100
+                            }%`,
+                        }}
+                      />
                     </div>
                   </div>
                 ) : (
@@ -201,6 +338,7 @@ export default function Models() {
                     상세 보기
                   </button>
                   <button
+                    onClick={() => deleteModel(model.id)}
                     disabled={model.status === 'active'}
                     className="text-xs px-3 py-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed ml-auto"
                   >
@@ -332,6 +470,93 @@ export default function Models() {
                     );
                   })}
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {isRegisterModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/30"
+            onClick={() => setIsRegisterModalOpen(false)}
+          />
+
+          <div className="relative w-full max-w-lg bg-white rounded-xl shadow-xl">
+            <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+              <div>
+                <h3 className="text-base font-bold text-navy-900">
+                  AI 모델 등록
+                </h3>
+                <p className="text-xs text-gray-500 mt-1">
+                  새로운 AI 모델을 등록합니다.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setIsRegisterModalOpen(false)}
+                className="p-1.5 text-gray-400 hover:text-navy-700 hover:bg-gray-100 rounded-lg"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  모델 이름
+                </label>
+                <input
+                  type="text"
+                  value={newModelName}
+                  onChange={(e) => setNewModelName(e.target.value)}
+                  placeholder="예: YOLO"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  버전
+                </label>
+                <input
+                  type="text"
+                  value={newModelVersion}
+                  onChange={(e) => setNewModelVersion(e.target.value)}
+                  placeholder="예: v1.0"
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-navy-200"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1.5">
+                  모델 설명
+                </label>
+                <textarea
+                  value={newModelDescription}
+                  onChange={(e) => setNewModelDescription(e.target.value)}
+                  placeholder="모델에 대한 설명을 입력하세요."
+                  rows={3}
+                  className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-navy-200"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsRegisterModalOpen(false)}
+                  className="btn-secondary text-sm px-4 py-2"
+                >
+                  취소
+                </button>
+
+                <button
+                  type="button"
+                  onClick={registerModel}
+                  className="btn-primary text-sm px-4 py-2"
+                >
+                  모델 등록
+                </button>
               </div>
             </div>
           </div>

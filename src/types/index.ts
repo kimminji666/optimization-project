@@ -1,12 +1,16 @@
 export type DefectType =
   | 'scratch'
-  | 'dent'
-  | 'rust'
-  | 'crack'
-  | 'deformation'
-  | 'contamination'
-  | 'color_mismatch'
-  | 'missing_part';
+  | 'appearance_damage'
+  | 'step'
+  | 'mounting'
+  | 'fixing'
+  | 'pin_fixing'
+  | 'connection'
+  | 'looseness'
+  | 'fastening'
+  | 'sealing'
+  | 'hemming'
+  | 'hole_deformation';
 
 export type InspectionResult = 'pass' | 'fail' | 'pending';
 
@@ -54,6 +58,8 @@ export interface AIModel {
   name: string;
   version: string;
   status: 'active' | 'inactive' | 'training';
+  trainingEpoch?: number;
+  totalEpochs?: number;
 
   // 탐지 성능
   accuracy: number;
@@ -87,14 +93,23 @@ export interface PartCategoryMeta {
 
 export const DEFECT_TYPES: DefectTypeMeta[] = [
   { key: 'scratch', label: '스크래치', color: '#f59e0b' },
-  { key: 'dent', label: '덴트', color: '#ef4444' },
-  { key: 'rust', label: '녹', color: '#b45309' },
-  { key: 'crack', label: '균열', color: '#dc2626' },
-  { key: 'deformation', label: '변형', color: '#8b5cf6' },
-  { key: 'contamination', label: '오염', color: '#0891b2' },
-  { key: 'color_mismatch', label: '색상 불량', color: '#db2777' },
-  { key: 'missing_part', label: '부품 누락', color: '#6b7280' },
+  { key: 'appearance_damage', label: '외관 손상', color: '#8b5cf6' },
+  { key: 'step', label: '단차', color: '#dc2626' },
+  { key: 'mounting', label: '장착 불량', color: '#0891b2' },
+  { key: 'fixing', label: '고정 불량', color: '#16a34a' },
+  { key: 'pin_fixing', label: '고정핀 불량', color: '#ca8a04' },
+  { key: 'connection', label: '연계 불량', color: '#2563eb' },
+  { key: 'looseness', label: '유격 불량', color: '#9333ea' },
+  { key: 'fastening', label: '체결 불량', color: '#ea580c' },
+  { key: 'sealing', label: '실링 불량', color: '#0d9488' },
+  { key: 'hemming', label: '헤밍 불량', color: '#db2777' },
+  { key: 'hole_deformation', label: '홀 변형', color: '#475569' },
 ];
+
+export const defectLabel = (key: DefectType): string => {
+  const defect = DEFECT_TYPES.find((item) => item.key === key);
+  return defect ? defect.label : key;
+};
 
 export const PART_CATEGORIES: PartCategoryMeta[] = [
   { key: 'door', label: '도어' },
@@ -109,9 +124,6 @@ export const PART_CATEGORIES: PartCategoryMeta[] = [
   { key: 'head_lamp', label: '헤드 램프' },
   { key: 'fender', label: '휀더' },
 ];
-
-export const defectLabel = (type: DefectType): string =>
-  DEFECT_TYPES.find((d) => d.key === type)?.label ?? type;
 
 export const categoryLabel = (cat: PartCategory): string =>
   PART_CATEGORIES.find((c) => c.key === cat)?.label ?? cat;
